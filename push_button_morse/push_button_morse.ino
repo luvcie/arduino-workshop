@@ -7,7 +7,7 @@ const int morseLedPin = LED_BUILTIN;
 #define ELEM_GAP    700
 #define CHAR_GAP    1000
 
-// array containing "42"
+// array containing "42" morse code timing
 const int morse_timing[] = {
     DOT, ELEM_GAP, DOT, ELEM_GAP, DOT, ELEM_GAP, DOT, ELEM_GAP, DASH, CHAR_GAP,
     DOT, ELEM_GAP, DOT, ELEM_GAP, DASH, ELEM_GAP, DASH, ELEM_GAP, DASH, CHAR_GAP
@@ -19,16 +19,18 @@ int current_step = 0;
 unsigned long last_morse_change = 0;
 
 // this function gets called automatically whenever the button changes
+// ISR = Interrupt Service Routine
 void buttonISR() {
   int buttonState = digitalRead(buttonPin);
-  // button released = led off, button pressed = led on
-  digitalWrite(ledPin, (buttonState == HIGH) ? LOW : HIGH);
+  // with INPUT_PULLUP: released = HIGH, pressed = LOW
+  // so we just copy the button state directly to the led
+  digitalWrite(ledPin, buttonState);
 }
 
 void setup() {
   pinMode(ledPin, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP);
-  digitalWrite(ledPin, LOW);
+  digitalWrite(ledPin, HIGH);
   pinMode(morseLedPin, OUTPUT);
 
   // attach interrupt so button works independently from the morse code
@@ -37,11 +39,14 @@ void setup() {
   last_morse_change = millis();
 }
 
+// morse always runs continuously, independent of button
 void loop() {
-  // morse code just keeps running no matter what
   if (millis() - last_morse_change >= morse_timing[current_step]) {
     last_morse_change = millis();
     current_step = (current_step + 1) % morse_steps;
-    digitalWrite(morseLedPin, (current_step % 2 == 0));
+    // even steps (0,2,4...) are signals -> turn led on
+    // odd steps (1,3,5...) are gaps -> turn led off
+    bool isSignal = (current_step % 2 == 0);
+    digitalWrite(morseLedPin, isSignal);
   }
 }
